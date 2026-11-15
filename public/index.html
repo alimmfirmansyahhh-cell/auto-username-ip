@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-IP DataImpulse - Secure VIP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f111a; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 33, 45, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }
+        .input-field { background-color: #1a1d27; border: 1px solid #2d3243; color: #fff; transition: all 0.2s; }
+        .input-field:focus { border-color: #f97316; box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2); outline: none; }
+        .btn-primary { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #fff; transition: all 0.2s; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(1px); }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex justify-center pb-20">
+    <div class="w-full max-w-lg mt-10 flex flex-col gap-6">
+
+        <!-- HEADER -->
+        <div class="flex justify-between items-center glass-panel p-4 rounded-xl hidden" id="app-header">
+            <div>
+                <h1 class="text-xl font-bold text-white">SuperProxy <span class="text-orange-500">DataImpulse</span></h1>
+                <p id="user-badge" class="text-xs text-gray-400">Loading...</p>
+            </div>
+            <button onclick="doLogout()" class="bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-500 hover:text-white transition-colors">Logout</button>
+        </div>
+
+        <!-- VIEW: AUTH (Login / Register) -->
+        <div id="view-auth" class="glass-panel p-8 rounded-2xl flex-col gap-5 hidden">
+            <div class="text-center mb-2">
+                <h2 class="text-2xl font-extrabold text-white" id="auth-title">Masuk ke Sistem</h2>
+                <p class="text-sm text-gray-400 mt-1">Wajib menggunakan email @gmail.com</p>
+            </div>
+            
+            <div>
+                <label class="text-xs text-gray-400 mb-1 block">Email (@gmail.com)</label>
+                <input type="email" id="auth-email" class="input-field w-full p-3 rounded-lg text-sm" placeholder="contoh@gmail.com">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 mb-1 block">Password</label>
+                <input type="password" id="auth-pass" class="input-field w-full p-3 rounded-lg text-sm" placeholder="Ketik password...">
+            </div>
+            
+            <button onclick="doAuth()" id="btn-submit-auth" class="btn-primary w-full py-3 rounded-lg font-bold mt-2">Login</button>
+            <p class="text-xs text-center text-gray-400 cursor-pointer hover:text-white mt-2" onclick="toggleAuthMode()" id="auth-toggle-text">Belum punya akun? Daftar sekarang</p>
+        </div>
+
+        <!-- VIEW: DASHBOARD USER -->
+        <div id="view-user" class="hidden flex-col gap-6">
+            <div class="glass-panel p-6 rounded-xl">
+                <h2 class="text-lg font-bold text-white mb-4">Kredensial DataImpulse</h2>
+                <div class="flex flex-col gap-3">
+                    <input type="text" id="di-user" class="input-field w-full p-3 rounded-lg text-sm" placeholder="Username DI">
+                    <input type="password" id="di-pass" class="input-field w-full p-3 rounded-lg text-sm" placeholder="Password DI">
+                </div>
+                <button onclick="saveCreds()" class="btn-primary w-full py-2 rounded-lg font-bold mt-3 text-sm">Simpan Kredensial</button>
+                <p class="text-[11px] text-gray-500 mt-2 text-center">Data disimpan untuk keperluan Proxy Checker.</p>
+            </div>
+
+            <!-- Area VIP -->
+            <div id="vip-area" class="glass-panel p-6 rounded-xl hidden">
+                <h2 class="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Akses VIP Aktif
+                </h2>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <input type="text" id="m-country" class="input-field p-2 rounded-lg text-sm" value="ID" placeholder="Negara (ID)">
+                    <input type="text" id="m-asn" class="input-field p-2 rounded-lg text-sm" placeholder="ASN (4761)">
+                    <input type="text" id="m-state" class="input-field p-2 rounded-lg text-sm" placeholder="Provinsi">
+                    <input type="text" id="m-city" class="input-field p-2 rounded-lg text-sm" placeholder="Kota">
+                </div>
+                <button onclick="testProxy()" class="btn-primary w-full py-3 rounded-lg font-bold">Uji Proxy Sekarang</button>
+                <div id="proxy-result" class="hidden mt-4 p-3 bg-black/50 border border-gray-700 rounded text-sm font-mono whitespace-pre-wrap"></div>
+            </div>
+
+            <!-- Paywall -->
+            <div id="paywall-area" class="glass-panel p-6 rounded-xl text-center hidden border border-red-500/30">
+                <h2 class="text-xl font-bold text-red-400 mb-2">Akses Terkunci</h2>
+                <p class="text-sm text-gray-400 mb-4">Akun lu terdaftar, tapi belum VIP. Bayar Rp5.000 ke Admin buat buka Proxy Checker.</p>
+                <div class="flex gap-2">
+                    <a href="https://wa.me/6283196648933" target="_blank" class="bg-[#25D366] text-white w-full py-3 rounded-lg font-bold text-sm">WA Admin</a>
+                    <a href="https://t.me/bukansap1" target="_blank" class="bg-[#229ED9] text-white w-full py-3 rounded-lg font-bold text-sm">Telegram Admin</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: DASHBOARD ADMIN -->
+        <div id="view-admin" class="hidden flex-col gap-6">
+            <div class="glass-panel p-6 rounded-xl border border-orange-500/30">
+                <h2 class="text-xl font-bold text-orange-500 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    Admin Panel
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-gray-400 border-b border-gray-700">
+                            <tr>
+                                <th class="p-2">Email</th>
+                                <th class="p-2">Kredensial DI</th>
+                                <th class="p-2 text-center">Aksi VIP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let isRegister = false;
+        let currentUser = null;
+        const OWNER_EMAIL = 'alimmfirmansyahhh@gmail.com';
+
+        window.onload = async () => {
+            try {
+                const res = await fetch('/api/me');
+                if (res.ok) {
+                    currentUser = await res.json();
+                    renderDashboard();
+                } else {
+                    showAuthScreen();
+                }
+            } catch (e) {
+                showAuthScreen();
+            }
+        };
+
+        function showAuthScreen() {
+            document.getElementById('view-auth').classList.remove('hidden');
+            document.getElementById('view-auth').classList.add('flex');
+            document.getElementById('app-header').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            isRegister = !isRegister;
+            document.getElementById('auth-title').innerText = isRegister ? "Daftar Akun Baru" : "Masuk ke Sistem";
+            document.getElementById('btn-submit-auth').innerText = isRegister ? "Daftar" : "Login";
+            document.getElementById('auth-toggle-text').innerText = isRegister ? "Udah punya akun? Login" : "Belum punya akun? Daftar sekarang";
+        }
+
+        async function doAuth() {
+            const email = document.getElementById('auth-email').value.trim();
+            const p = document.getElementById('auth-pass').value;
+            
+            if (!email || !p) return alert("Isi email dan password!");
+            if (!email.toLowerCase().endsWith('@gmail.com')) {
+                return alert("Wajib pake email @gmail.com!");
+            }
+            
+            const url = isRegister ? '/api/register' : '/api/login';
+            
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: p })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                if (isRegister) {
+                    alert("Register sukses, silakan login.");
+                    toggleAuthMode();
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function doLogout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.reload();
+        }
+
+        async function renderDashboard() {
+            document.getElementById('view-auth').classList.add('hidden');
+            document.getElementById('app-header').classList.remove('hidden');
+            
+            const isOwner = currentUser.email === OWNER_EMAIL;
+            document.getElementById('user-badge').innerText = `Login: ${currentUser.email} ${isOwner ? '(Owner)' : ''}`;
+
+            if (isOwner) {
+                document.getElementById('view-admin').classList.remove('hidden');
+                document.getElementById('view-admin').classList.add('flex');
+                loadAdminData();
+            } else {
+                document.getElementById('view-user').classList.remove('hidden');
+                document.getElementById('view-user').classList.add('flex');
+                
+                document.getElementById('di-user').value = currentUser.di_user || '';
+                document.getElementById('di-pass').value = currentUser.di_pass || '';
+
+                if (currentUser.is_vip) {
+                    document.getElementById('vip-area').classList.remove('hidden');
+                } else {
+                    document.getElementById('paywall-area').classList.remove('hidden');
+                }
+            }
+        }
+
+        async function saveCreds() {
+            const du = document.getElementById('di-user').value;
+            const dp = document.getElementById('di-pass').value;
+            const res = await fetch('/api/save-creds', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ di_user: du, di_pass: dp })
+            });
+            if (res.ok) alert("Kredensial tersimpan di database!");
+        }
+
+        async function testProxy() {
+            const resDiv = document.getElementById('proxy-result');
+            resDiv.classList.remove('hidden');
+            resDiv.innerText = "Menembak proxy...";
+
+            const payload = {
+                country: document.getElementById('m-country').value,
+                asn: document.getElementById('m-asn').value,
+                state: document.getElementById('m-state').value,
+                city: document.getElementById('m-city').value
+            };
+
+            const res = await fetch('/api/test-location', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                resDiv.innerHTML = `<span class="text-green-400">[+] SUKSES!</span>\nIP: ${data.data.ip}\nKota: ${data.data.city}\nASN: ${data.data.asn}\nProxy: ${data.data.proxy}`;
+            } else {
+                resDiv.innerHTML = `<span class="text-red-400">[-] GAGAL:</span> ${data.error}`;
+            }
+        }
+
+        async function loadAdminData() {
+            const res = await fetch('/api/admin/users');
+            const users = await res.json();
+            const tbody = document.getElementById('admin-table');
+            tbody.innerHTML = '';
+
+            users.forEach(u => {
+                if (u.email === OWNER_EMAIL) return; // Sembunyiin diri sendiri
+                
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-800 hover:bg-white/5 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-white text-xs break-all">${u.email}</td>
+                    <td class="p-3 text-[11px] text-gray-400 font-mono">
+                        U: ${u.di_user || '<span class="text-red-500">Kosong</span>'}<br>
+                        P: ${u.di_pass || '<span class="text-red-500">Kosong</span>'}
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="toggleVip(${u.id}, ${u.is_vip})" class="px-3 py-1 rounded text-xs font-bold transition-colors ${u.is_vip ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white' : 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500 hover:text-white'}">
+                            ${u.is_vip ? 'Cabut VIP' : 'Beri VIP'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function toggleVip(id, currentStatus) {
+            await fetch('/api/admin/grant-vip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: id, isVip: !currentStatus })
+            });
+            loadAdminData();
+        }
+    </script>
+</body>
+</html>
